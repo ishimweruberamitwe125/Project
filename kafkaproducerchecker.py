@@ -38,7 +38,7 @@ producer = KafkaProducer(
 # Function to get the latest changes from the past_sales table
 def get_changes(last_checked):
     # Load data from PostgreSQL, limiting to five records
-    query = f"(SELECT * FROM past_sales WHERE last_modified > '{last_checked}' ORDER BY last_modified LIMIT 5) AS new_sales"
+    query = "(SELECT * FROM past_sales WHERE last_modified > '{}' ORDER BY last_modified LIMIT 5) AS new_sales".format(last_checked)
     df = spark.read.jdbc(url=jdbc_url, table=query, properties=connection_properties)
     return df
 

@@ -6,6 +6,8 @@ import subprocess
 spark = SparkSession.builder \
     .appName("PostgresToHDFS") \
     .master("local[*]") \
+    .config("spark.hadoop.fs.defaultFS", "hdfs://ip-172-31-3-80.eu-west-2.compute.internal:8022") \
+    .config("spark.hadoop.hdfs.impl", "org.apache.hadoop.hdfs.DistributedFileSystem") \
     .config("spark.jars", "/usr/local/lib/postgresql-42.2.18.jar") \
     .getOrCreate()
 

@@ -21,9 +21,9 @@ connection_properties = {
 def delete_hdfs_path(hdfs_path):
     try:
         subprocess.run(["hadoop", "fs", "-rm", "-r", hdfs_path], check=True)
-        print(f"Deleted existing files at {hdfs_path}")
+        print("[INFO] Deleted existing files at {}".format(hdfs_path))
     except subprocess.CalledProcessError:
-        print(f"No existing files found at {hdfs_path} to delete.")
+        print("[INFO] No existing files found at {} to delete.".format(hdfs_path))
 
 # Function to convert date columns to string format
 def convert_dates(df):
@@ -34,44 +34,49 @@ def convert_dates(df):
 
 # Function to load data from PostgreSQL and save to HDFS in CSV and Parquet formats
 def load_and_save_to_hdfs(table_name, hdfs_path_base):
-    # Load data from PostgreSQL
-    df = spark.read.jdbc(url=jdbc_url, table=table_name, properties=connection_properties)
-    
-    # Show number of records
-    record_count = df.count()
-    print(f"Number of records in {table_name}: {record_count}")
-    
-    # Convert date columns to readable format
-    df = convert_dates(df)
-    
-    # Define paths for CSV and Parquet
-    hdfs_path_csv = f"{hdfs_path_base}/{table_name}/csv"
-    hdfs_path_parquet = f"{hdfs_path_base}/{table_name}/parquet"
-    
-    # Delete existing paths if present
-    delete_hdfs_path(hdfs_path_csv)
-    delete_hdfs_path(hdfs_path_parquet)
-    
-    # Save to HDFS as CSV
-    df.write.mode("overwrite") \
-        .option("header", "true") \
-        .csv(hdfs_path_csv)
-    print(f"Data for {table_name} written to {hdfs_path_csv} in CSV format")
-    
-    # Save to HDFS as Parquet
-    df.write.mode("overwrite") \
-        .parquet(hdfs_path_parquet)
-    print(f"Data for {table_name} written to {hdfs_path_parquet} in Parquet format")
+    try:
+        # Load data from PostgreSQL
+        print("[INFO] Loading data from PostgreSQL table: {}".format(table_name))
+        df = spark.read.jdbc(url=jdbc_url, table=table_name, properties=connection_properties)
+        
+        # Show number of records
+        record_count = df.count()
+        print("[INFO] Number of records in {}: {}".format(table_name, record_count))
+        
+        # Convert date columns to readable format
+        df = convert_dates(df)
+        
+        # Define paths for CSV and Parquet
+        hdfs_path_csv = "{}/{}/csv".format(hdfs_path_base, table_name)
+        hdfs_path_parquet = "{}/{}/parquet".format(hdfs_path_base, table_name)
+        
+        # Delete existing paths if present
+        delete_hdfs_path(hdfs_path_csv)
+        delete_hdfs_path(hdfs_path_parquet)
+        
+        # Save to HDFS as CSV
+        df.write.mode("overwrite") \
+            .option("header", "true") \
+            .csv(hdfs_path_csv)
+        print("[INFO] Data for {} written to {} in CSV format".format(table_name, hdfs_path_csv))
+        
+        # Save to HDFS as Parquet
+        df.write.mode("overwrite") \
+            .parquet(hdfs_path_parquet)
+        print("[INFO] Data for {} written to {} in Parquet format".format(table_name, hdfs_path_parquet))
+        
+    except Exception as e:
+        print("[ERROR] Failed to load or save data for table {}. Error: {}".format(table_name, e))
 
 # Define HDFS base path
 hdfs_path_base = "hdfs://ip-172-31-3-80.eu-west-2.compute.internal:8022/tmp/david/full_load"
 
-# Load data from PostgreSQL and save to HDFS
-load_and_save_to_hdfs("features", hdfs_path_base)
-load_and_save_to_hdfs("store", hdfs_path_base)
-load_and_save_to_hdfs("past_sales", hdfs_path_base)
-load_and_save_to_hdfs("new_sales", hdfs_path_base)
+# List of tables to process
+tables = ["features", "store", "past_sales", "new_sales"]
+
+# Loop through each table and save it to HDFS
+for table in tables:
+    load_and_save_to_hdfs(table, hdfs_path_base)
 
 # Stop the Spark session
 spark.stop()
-

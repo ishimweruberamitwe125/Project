@@ -20,10 +20,11 @@ connection_properties = {
 # Function to delete existing files in HDFS if they already exist
 def delete_hdfs_path(hdfs_path):
     try:
-        subprocess.run(["hadoop", "fs", "-rm", "-r", hdfs_path], check=True)
-        print("[INFO] Deleted existing files at {}".format(hdfs_path))
+        # Use subprocess.call for compatibility with older Python versions
+        subprocess.call(["hadoop", "fs", "-rm", "-r", hdfs_path])
+        print(f"Deleted existing files at {hdfs_path}")
     except subprocess.CalledProcessError:
-        print("[INFO] No existing files found at {} to delete.".format(hdfs_path))
+        print(f"No existing files found at {hdfs_path} to delete.")
 
 # Function to convert date columns to string format
 def convert_dates(df):
@@ -36,19 +37,19 @@ def convert_dates(df):
 def load_and_save_to_hdfs(table_name, hdfs_path_base):
     try:
         # Load data from PostgreSQL
-        print("[INFO] Loading data from PostgreSQL table: {}".format(table_name))
+        print(f"Loading data from PostgreSQL table: {table_name}")
         df = spark.read.jdbc(url=jdbc_url, table=table_name, properties=connection_properties)
         
         # Show number of records
         record_count = df.count()
-        print("[INFO] Number of records in {}: {}".format(table_name, record_count))
+        print(f"Number of records in {table_name}: {record_count}")
         
         # Convert date columns to readable format
         df = convert_dates(df)
         
         # Define paths for CSV and Parquet
-        hdfs_path_csv = "{}/{}/csv".format(hdfs_path_base, table_name)
-        hdfs_path_parquet = "{}/{}/parquet".format(hdfs_path_base, table_name)
+        hdfs_path_csv = f"{hdfs_path_base}/{table_name}/csv"
+        hdfs_path_parquet = f"{hdfs_path_base}/{table_name}/parquet"
         
         # Delete existing paths if present
         delete_hdfs_path(hdfs_path_csv)
@@ -58,15 +59,15 @@ def load_and_save_to_hdfs(table_name, hdfs_path_base):
         df.write.mode("overwrite") \
             .option("header", "true") \
             .csv(hdfs_path_csv)
-        print("[INFO] Data for {} written to {} in CSV format".format(table_name, hdfs_path_csv))
+        print(f"Data for {table_name} written to {hdfs_path_csv} in CSV format")
         
         # Save to HDFS as Parquet
         df.write.mode("overwrite") \
             .parquet(hdfs_path_parquet)
-        print("[INFO] Data for {} written to {} in Parquet format".format(table_name, hdfs_path_parquet))
+        print(f"Data for {table_name} written to {hdfs_path_parquet} in Parquet format")
         
     except Exception as e:
-        print("[ERROR] Failed to load or save data for table {}. Error: {}".format(table_name, e))
+        print(f"[ERROR] Failed to load or save data for table {table_name}. Error: {e}")
 
 # Define HDFS base path
 hdfs_path_base = "hdfs://ip-172-31-3-80.eu-west-2.compute.internal:8022/tmp/david/full_load"

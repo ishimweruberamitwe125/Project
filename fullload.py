@@ -1,5 +1,5 @@
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import date_format, col
+from pyspark.sql.functions import date_format, col as pyspark_col
 import subprocess
 
 # Create Spark session with PostgreSQL JDBC configuration
@@ -27,9 +27,9 @@ def delete_hdfs_path(hdfs_path):
 
 # Function to convert date columns to string format
 def convert_dates(df):
-    date_columns = [col for col in df.columns if "date" in col.lower() or "last_modified" in col.lower()]
+    date_columns = [col_name for col_name in df.columns if "date" in col_name.lower() or "last_modified" in col_name.lower()]
     for date_col in date_columns:
-        df = df.withColumn(date_col, date_format(col(date_col), "yyyy-MM-dd"))
+        df = df.withColumn(date_col, date_format(pyspark_col(date_col), "yyyy-MM-dd"))
     return df
 
 # Function to load data from PostgreSQL and save to HDFS in CSV and Parquet formats
